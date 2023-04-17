@@ -249,7 +249,7 @@ public class InitScript : MonoBehaviour
 
         if (CountDownTimer.instance.LoadClicked)//Input.GetKeyUp(KeyCode.U)
         {
-            for (int i = 1; i < PlayerPrefs.GetInt("OpenLevel")+1; i++)
+            for (int i = 0; i < PlayerPrefs.GetInt("OpenLevel")+1; i++)
             {
                 SaveLevelStarsCount(i, 1);
             }

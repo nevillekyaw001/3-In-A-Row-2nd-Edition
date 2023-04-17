@@ -497,18 +497,19 @@ public class LevelManager : MonoBehaviour
 		float aspect = (float)Screen.height / (float)Screen.width;
 		GetComponent<Camera>().orthographicSize = 10.05f;
 		aspect = (float)Math.Round(aspect, 2);
-		//        if (aspect == 1.6f)
-		//            GetComponent<Camera>().orthographicSize = 4.6f;                    //16:10
-		//        else if (aspect == 1.78f)
-		//            GetComponent<Camera>().orthographicSize = 5.15f;    //16:9
-		//        else if (aspect == 1.5f)
-		//            GetComponent<Camera>().orthographicSize = 4.4f;                  //3:2
-		//        else if (aspect == 1.33f)
-		//            GetComponent<Camera>().orthographicSize = 4.45f;                  //4:3
-		//        else if (aspect == 1.67f)
-		//            GetComponent<Camera>().orthographicSize = 4.8f;                  //5:3
-		//        else if (aspect == 1.25f)
-		//            GetComponent<Camera>().orthographicSize = 4.45f;                  //5:4
+		//if (aspect == 1.6f)
+		//GetComponent<Camera>().orthographicSize = 4.6f;                    //16:10
+		//else if (aspect == 1.78f)
+		//GetComponent<Camera>().orthographicSize = 5.15f;				//16:9
+		//else if (aspect == 1.5f)
+		//GetComponent<Camera>().orthographicSize = 4.4f;                  //3:2
+		//else if (aspect == 1.33f)
+		//GetComponent<Camera>().orthographicSize = 4.45f;                  //4:3
+		//else if (aspect == 1.67f)//        
+		//GetComponent<Camera>().orthographicSize = 4.8f;                  //5:3
+		//else if (aspect == 1.25f)
+		//GetComponent<Camera>().orthographicSize = 4.45f;                  //5:4
+
 		GetComponent<Camera>().GetComponent<MapCamera>().SetPosition(new Vector2(0, GetComponent<Camera>().transform.position.y));
 	}
 

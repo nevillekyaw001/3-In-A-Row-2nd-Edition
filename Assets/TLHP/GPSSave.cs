@@ -57,7 +57,7 @@ public class GPSSave : MonoBehaviour
     //cloud save
     bool issaving = false;
     string SAVE_NAME = "savegames";
-    public void OpenSave(bool saving)
+    public void OpenSaveToCloud(bool saving)
     {
         if (Social.localUser.authenticated)
         {
@@ -76,7 +76,7 @@ public class GPSSave : MonoBehaviour
 
                 SavedGameMetadataUpdate update = new SavedGameMetadataUpdate.Builder().Build();
 
-                ((PlayGamesPlatform)Social.Active).SavedGame.CommitUpdate(meta, update, data, saveupdate);
+                ((PlayGamesPlatform)Social.Active).SavedGame.CommitUpdate(meta, update, data, SaveUpdate);
             }
             else //If issaving bool is false, we are opening our saved data from cloud
             {
@@ -117,7 +117,7 @@ public class GPSSave : MonoBehaviour
         return Data;
     }
 
-    private void saveupdate(SavedGameRequestStatus status, ISavedGameMetadata meta) 
+    private void SaveUpdate(SavedGameRequestStatus status, ISavedGameMetadata meta) 
     {
         //use this debug whether the game data is uploaded to cloud
         debugtext.text = "successfully added data to the cloud";
