@@ -8,14 +8,16 @@ using GooglePlayGames;
 using GooglePlayGames.BasicApi;
 using GooglePlayGames.BasicApi.SavedGame;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class CountDownTimer: MonoBehaviour
  {
     public static CountDownTimer instance;
     public Button AddGemButton;
     public bool ButtonIsClicked = false;
+    public TMP_Text countDown;
     float ElapsedTime;
-    float NextTimeToAppear = 62f;
+    float NextTimeToAppear = 32f;
 
     string TempStr;
 
@@ -30,12 +32,11 @@ public class CountDownTimer: MonoBehaviour
 
     private void Update()
     {
-
-        
         if (ButtonIsClicked)
         {
             AddGemButton.interactable = false;
             NextTimeToAppear -= Time.deltaTime;
+            countDown.SetText(NextTimeToAppear.ToString());
         }
         else
         {
@@ -45,7 +46,7 @@ public class CountDownTimer: MonoBehaviour
         if (NextTimeToAppear <= 0)
         {
             ButtonIsClicked = false;
-            NextTimeToAppear = 10f;
+            NextTimeToAppear = 32f;
         }
 
         
