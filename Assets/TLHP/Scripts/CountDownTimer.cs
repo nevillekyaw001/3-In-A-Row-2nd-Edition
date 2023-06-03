@@ -17,6 +17,7 @@ public class CountDownTimer: MonoBehaviour
     public bool ButtonIsClicked = false;
     public Text countDown;
     public GameObject Timer;
+    public GameObject Tick;
     float ElapsedTime;
     float NextTimeToAppear = 32f;
 
@@ -29,6 +30,7 @@ public class CountDownTimer: MonoBehaviour
     private void Awake()
     {
         instance = this;
+        Tick.SetActive(false);
     }
 
     private void Update()
@@ -46,11 +48,13 @@ public class CountDownTimer: MonoBehaviour
         {
             Timer.SetActive(false);
             AddGemButton.interactable = true;
+            
         }
 
         if (NextTimeToAppear <= 0)
         {
             ButtonIsClicked = false;
+            StartCoroutine(WaitTick());
             NextTimeToAppear = 32f;
         }
 
@@ -161,5 +165,13 @@ public class CountDownTimer: MonoBehaviour
         WarningPanel.SetActive(false);
         LoadClicked = false;
         SceneManager.LoadScene(0); 
+    }
+
+    IEnumerator WaitTick()
+    {
+        Tick.SetActive(true);
+        yield return new WaitForSeconds(5f);
+        Tick.SetActive(false);
+
     }
 }
