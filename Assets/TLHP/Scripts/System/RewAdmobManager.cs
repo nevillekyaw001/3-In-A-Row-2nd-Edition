@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 #if GOOGLE_MOBILE_ADS
 using GoogleMobileAds.Api;
 #endif
@@ -13,6 +14,12 @@ namespace JuiceFresh.Scripts.System
 #if GOOGLE_MOBILE_ADS
         private RewardedAd rewardBasedVideo;
         private Action resultCallback;
+        
+        public UnityEvent OnAdFailedToLoadEvent;
+        public UnityEvent OnAdOpeningEvent;
+        public UnityEvent OnAdFailedToShowEvent;
+        public UnityEvent OnUserEarnedRewardEvent;
+        public UnityEvent OnAdClosedEvent;
 
         private void Awake()
         {
@@ -25,7 +32,18 @@ namespace JuiceFresh.Scripts.System
 
         public void Start()
         {
-            
+            RequestRewardBasedVideo();
+        }
+
+        private AdRequest CreateAdRequest()
+        {
+            return new AdRequest.Builder().Build();
+        }
+        
+        
+
+        private void RequestRewardBasedVideo()
+        {
 #if UNITY_ANDROID
             string adUnitId = InitScript.Instance.admobRewardedUIDAndroid;
 #elif UNITY_IPHONE
@@ -33,45 +51,86 @@ namespace JuiceFresh.Scripts.System
 #else
             string adUnitId = "unexpected_platform";
 #endif
+            
+                 // create new rewarded ad instance
+        RewardedAd.Load(adUnitId, CreateAdRequest(),
+            (RewardedAd ad, LoadAdError loadError) =>
+            {
+                if (loadError != null)
+                {
+                    Debug.Log("Rewarded ad failed to load with error: " +
+                                loadError.GetMessage());
+                    return;
+                }
+                else if (ad == null)
+                {
+                    Debug.Log("Rewarded ad failed to load.");
+                    return;
+                }
 
-            // Get singleton reward based video ad reference.
-            this.rewardBasedVideo = new RewardedAd(adUnitId);
+                Debug.Log("Rewarded ad loaded.");
+                rewardBasedVideo = ad;
 
-            // Called when an ad request has successfully loaded.
-            rewardBasedVideo.OnAdLoaded += HandleRewardBasedVideoLoaded;
-            // Called when an ad request failed to load.
-            rewardBasedVideo.OnAdFailedToLoad += HandleRewardBasedVideoFailedToLoad;
-            // Called when an ad is shown.
-            rewardBasedVideo.OnAdOpening += HandleRewardBasedVideoOpened;
-            // Called when the ad starts to play.
-            //rewardBasedVideo.OnAdStarted += HandleRewardBasedVideoStarted;
-            // Called when the user should be rewarded for watching a video.
-            rewardBasedVideo.OnUserEarnedReward += HandleRewardBasedVideoRewarded;
-            // Called when the ad is closed.
-            rewardBasedVideo.OnAdClosed += HandleRewardBasedVideoClosed;
-            // Called when the ad click caused the user to leave the application.
-            rewardBasedVideo.OnAdFailedToShow += HandleRewardBasedVideoLeftApplication;
-
-            this.RequestRewardBasedVideo();
-        }
-
-        private void RequestRewardBasedVideo()
-        {
-            // Create an empty ad request.
-            AdRequest request = new AdRequest.Builder().Build();
-            // Load the rewarded video ad with the request.
-            this.rewardBasedVideo.LoadAd(request);
+                ad.OnAdFullScreenContentOpened += () =>
+                {
+                    Debug.Log("Rewarded ad opening.");
+                    OnAdOpeningEvent.Invoke();
+                };
+                ad.OnAdFullScreenContentClosed += () =>
+                {
+                    Debug.Log("Rewarded ad closed.");
+                    OnAdClosedEvent.Invoke();
+                    RequestRewardBasedVideo();
+                };
+                ad.OnAdImpressionRecorded += () =>
+                {
+                    Debug.Log("Rewarded ad recorded an impression.");
+                };
+                ad.OnAdClicked += () =>
+                {
+                    Debug.Log("Rewarded ad recorded a click.");
+                };
+                ad.OnAdFullScreenContentFailed += (AdError error) =>
+                {
+                    Debug.Log("Rewarded ad failed to show with error: " +
+                              error.GetMessage());
+                    RequestRewardBasedVideo();
+                };
+                ad.OnAdPaid += (AdValue adValue) =>
+                {
+                    string msg = string.Format("{0} (currency: {1}, value: {2}",
+                                               "Rewarded ad received a paid event.",
+                                               adValue.CurrencyCode,
+                                               adValue.Value);
+                    Debug.Log(msg);
+                    RequestRewardBasedVideo();
+                };
+            });
         }
 
         public bool IsRewardedAdIsLoaded()
         {
-            return rewardBasedVideo.IsLoaded();
+            return rewardBasedVideo.CanShowAd();
         }
 
         public void ShowRewardedAd(Action resultCallback)
         {
-            this.resultCallback = resultCallback;
-            if(IsRewardedAdIsLoaded()) rewardBasedVideo.Show();
+       
+            if (!IsRewardedAdIsLoaded())
+            {
+                Debug.Log("Rewarded ad is not ready yet.");
+                RequestRewardBasedVideo();
+            }
+        
+            if (IsRewardedAdIsLoaded())
+            {
+                rewardBasedVideo.Show((Reward reward) =>
+                {
+                    this.resultCallback = resultCallback;
+                    resultCallback.Invoke();
+                    Debug.Log("Rewarded ad granted a reward: " + reward.Amount);
+                });
+            }
         }
 
         public void HandleRewardBasedVideoLoaded(object sender, EventArgs args)

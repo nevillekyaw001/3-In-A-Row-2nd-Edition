@@ -3,7 +3,10 @@ using System.Collections;
 using System;
 
 using System.Collections.Generic;
+using JuiceFresh.Scripts.Integrations;
 using JuiceFresh.Scripts.System;
+using UnityEngine.Events;
+
 #if UNITY_ADS
 using JuiceFresh.Scripts.Integrations;
 using UnityEngine.Advertisements;
@@ -12,9 +15,11 @@ using UnityEngine.Advertisements;
 #if CHARTBOOST_ADS
 using ChartboostSDK;
 #endif
+
 #if  GOOGLE_MOBILE_ADS
 using GoogleMobileAds.Api;
 #endif
+
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
@@ -146,6 +151,17 @@ public class InitScript : MonoBehaviour
     public string admobRewardedUIDAndroid;
     public string admobRewardedUIDIOS;
 
+#if UNITY_ADS
+    public UnityAdsID unityAds;
+#endif
+    
+    public UnityEvent OnAdLoadedEvent;
+    public UnityEvent OnAdFailedToLoadEvent;
+    public UnityEvent OnAdOpeningEvent;
+    public UnityEvent OnAdFailedToShowEvent;
+    public UnityEvent OnUserEarnedRewardEvent;
+    public UnityEvent OnAdClosedEvent;
+    
     // Use this for initialization
     void Awake()
     {
@@ -181,12 +197,8 @@ public class InitScript : MonoBehaviour
         SoundBase.Instance.GetComponent<AudioSource>().volume = PlayerPrefs.GetInt("Sound");
 #if UNITY_ADS//1.3
 		enableUnityAds = true;
-        var unityAds = Resources.Load<UnityAdsID>("UnityAdsID");
-        #if UNITY_ANDROID
-            Advertisement.Initialize(unityAds.androidID,false);
-        #elif UNITY_IOS
-            Advertisement.Initialize(unityAds.iOSID,false);
-        #endif
+        unityAds = Resources.Load<UnityAdsID>("UnityAdsID");
+        UnityAdsController.Instance.InitAds();
 #else
         enableUnityAds = false;
 #endif
@@ -206,21 +218,24 @@ public class InitScript : MonoBehaviour
 		enableGoogleMobileAds = true;//1.3
 #if UNITY_ANDROID
         MobileAds.Initialize(initStatus => { });
-        interstitial = new InterstitialAd(admobUIDAndroid);
+        // When true all events raised by GoogleMobileAds will be raised
+        // on the Unity main thread. The default value is false.
+        MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        //interstitial = new InterstitialAd(admobUIDAndroid);
+        LoadInterstitialAd(admobUIDAndroid);
 #elif UNITY_IOS
-       MobileAds.Initialize(initStatus => { });
-        interstitial = new InterstitialAd(admobUIDIOS);
+        MobileAds.Initialize(initStatus => { });
+        MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        LoadInterstitialAd(admobUIDIOS);
 #else
         MobileAds.Initialize(initStatus => { });
-		interstitial = new InterstitialAd (admobUIDAndroid);
+		MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        LoadInterstitialAd(admobUIDAndroid);
 #endif
 
 		// Create an empty ad request.
 		requestAdmob = new AdRequest.Builder ().Build ();
-		// Load the interstitial with the request.
-		interstitial.LoadAd (requestAdmob);
-		interstitial.OnAdLoaded += HandleInterstitialLoaded;
-		interstitial.OnAdFailedToLoad += HandleInterstitialFailedToLoad;
+		
 #else
         enableGoogleMobileAds = false; //1.3
 #endif
@@ -232,6 +247,76 @@ public class InitScript : MonoBehaviour
     }
 #if GOOGLE_MOBILE_ADS
 	
+    private AdRequest CreateAdRequest()
+    {
+        return new AdRequest.Builder().Build();
+    }
+    
+    public void LoadInterstitialAd(string _adUnitId)
+        {
+            // Clean up the old ad before loading a new one.
+            if (interstitial != null)
+            {
+                interstitial.Destroy();
+                interstitial = null;
+            }
+
+            Debug.Log("Loading the interstitial ad.");
+            
+            // send the request to load the ad.
+            // Load an interstitial ad
+        InterstitialAd.Load(_adUnitId, CreateAdRequest(),
+            (InterstitialAd ad, LoadAdError loadError) =>
+            {
+                if (loadError != null)
+                {
+                    Debug.Log("Interstitial ad failed to load with error: " +
+                              loadError.GetMessage());
+                    return;
+                }
+                else if (ad == null)
+                {
+                    Debug.Log("Interstitial ad failed to load.");
+                    return;
+                }
+
+                Debug.Log("Interstitial ad loaded.");
+                interstitial = ad;
+
+                ad.OnAdFullScreenContentOpened += () =>
+                {
+                    Debug.Log("Interstitial ad opening.");
+                    OnAdOpeningEvent.Invoke();
+                };
+                ad.OnAdFullScreenContentClosed += () =>
+                {
+                    Debug.Log("Interstitial ad closed.");
+                    OnAdClosedEvent.Invoke();
+                };
+                ad.OnAdImpressionRecorded += () =>
+                {
+                    Debug.Log("Interstitial ad recorded an impression.");
+                };
+                ad.OnAdClicked += () =>
+                {
+                    Debug.Log("Interstitial ad recorded a click.");
+                };
+                ad.OnAdFullScreenContentFailed += (AdError error) =>
+                {
+                    Debug.Log("Interstitial ad failed to show with error: " +
+                              error.GetMessage());
+                };
+                ad.OnAdPaid += (AdValue adValue) =>
+                {
+                    string msg = string.Format("{0} (currency: {1}, value: {2}",
+                                               "Interstitial ad received a paid event.",
+                                               adValue.CurrencyCode,
+                                               adValue.Value);
+                    Debug.Log(msg);
+                };
+            });
+        }
+    
 	public void HandleInterstitialLoaded (object sender, EventArgs args) {
 		print ("HandleInterstitialLoaded event received.");
 	}
@@ -247,15 +332,14 @@ public class InitScript : MonoBehaviour
         if (Input.GetKeyUp(KeyCode.LeftControl))
             leftControl = false;
 
-        if (CountDownTimer.instance.LoadClicked)//Input.GetKeyUp(KeyCode.U)
+        if (Input.GetKeyUp(KeyCode.U))
         {
-            for (int i = 0; i < PlayerPrefs.GetInt("OpenLevel")+1; i++)
+            for (int i = 1; i < GameObject.Find("Levels").transform.childCount; i++)
             {
                 SaveLevelStarsCount(i, 1);
             }
 
         }
-        
     }
 
     public void SaveLevelStarsCount(int level, int starsCount)
@@ -274,7 +358,7 @@ public class InitScript : MonoBehaviour
     {
 #if UNITY_ADS
 
-		rewardedVideoZone = "rewardedVideo";
+		/*rewardedVideoZone = "rewardedVideo";
 		if (Advertisement.IsReady (rewardedVideoZone)) {
 			return true;
 		} else {
@@ -282,7 +366,9 @@ public class InitScript : MonoBehaviour
 			if (Advertisement.IsReady (rewardedVideoZone)) {
 				return true;
 			}
-		}
+		}*/
+        
+        return UnityAdsController.Instance.isLoaded;
 #endif
 
         return false;
@@ -293,7 +379,7 @@ public class InitScript : MonoBehaviour
 #if UNITY_ADS
 		Debug.Log ("show Unity Rewarded ads video in " + LevelManager.THIS.gameStatus);
 
-		if (GetRewardedUnityAdsReady ()) {
+		/*if (GetRewardedUnityAdsReady ()) {
 			Advertisement.Show (rewardedVideoZone, new ShowOptions {
 				resultCallback = result => {
 					if (result == ShowResult.Finished) {
@@ -301,7 +387,10 @@ public class InitScript : MonoBehaviour
 					}
 				}
 			});
-		}
+		}*/
+        
+        ShowVideo(true);
+        
 #elif GOOGLE_MOBILE_ADS//2.2
         bool stillShow = true;
 #if UNITY_ADS
@@ -341,25 +430,27 @@ public class InitScript : MonoBehaviour
     {
         if (adType == AdType.AdmobInterstitial)
             ShowAds(false);
-        else if (adType == AdType.UnityAdsVideo)
-            ShowVideo();
+        //else if (adType == AdType.UnityAdsInterstitial)
+            //ShowVideo();
         else if (adType == AdType.ChartboostInterstitial)
             ShowAds(true);
 
     }
 
-    public void ShowVideo()
+    public void ShowVideo(bool isRewardedAds = false)
     {
         Debug.Log("show Unity ads video on " + LevelManager.THIS.gameStatus);
 #if UNITY_ADS
-
-		if (Advertisement.IsReady ("video")) {
-			Advertisement.Show ("video");
-		} else {
-			if (Advertisement.IsReady ("defaultZone")) {
-				Advertisement.Show ("defaultZone");
-			}
-		}
+        string loadAdType = isRewardedAds
+            ?
+            (Application.platform == RuntimePlatform.IPhonePlayer)
+                ? unityAds.iOS_rewardedAdUnitID
+                : unityAds.android_rewardedAdUnitID
+            : (Application.platform == RuntimePlatform.IPhonePlayer)
+                ? unityAds.iOS_interstitialAdUnitID
+                : unityAds.android_interstitialAdUnitID;
+        
+        UnityAdsController.Instance.ShowAds(loadAdType);
 #endif
     }
 
@@ -377,21 +468,25 @@ public class InitScript : MonoBehaviour
         {
             Debug.Log("show Google mobile ads Interstitial on " + LevelManager.THIS.gameStatus);
 #if GOOGLE_MOBILE_ADS
-			if (interstitial.IsLoaded ()) {
-				interstitial.Show ();
+            if (interstitial != null && interstitial.CanShowAd())
+            {
+                Debug.Log("Showing interstitial ad.");
+                interstitial.Show();
 #if UNITY_ANDROID
-				interstitial = new InterstitialAd (admobUIDAndroid);
+                //interstitial = new InterstitialAd(admobUIDAndroid);
+                LoadInterstitialAd(admobUIDAndroid);
 #elif UNITY_IOS
-                interstitial = new InterstitialAd(admobUIDIOS);
+               // interstitial = new InterstitialAd(admobUIDIOS);
+                     LoadInterstitialAd(admobUIDIOS);
 #else
-				interstitial = new InterstitialAd (admobUIDAndroid);
+			// interstitial = new InterstitialAd (admobUIDAndroid);
+                    LoadInterstitialAd(admobUIDAndroid);
 #endif
-
-				// Create an empty ad request.
-				requestAdmob = new AdRequest.Builder ().Build ();
-				// Load the interstitial with the request.
-				interstitial.LoadAd (requestAdmob);
-			}
+            }
+            else
+            {
+                Debug.LogError("Interstitial ad is not ready yet.");
+            }
 #endif
         }
     }
@@ -608,12 +703,11 @@ public class InitScript : MonoBehaviour
         PlayerPrefs.SetInt("Lifes", lifes);
         PlayerPrefs.SetString("DateOfExit", DateTime.Now.ToString());
         PlayerPrefs.Save();
-#if GOOGLE_MOBILE_ADS
+        
+/*#if GOOGLE_MOBILE_ADS
 		interstitial.OnAdLoaded -= HandleInterstitialLoaded;
 		interstitial.OnAdFailedToLoad -= HandleInterstitialFailedToLoad;
-#endif
+#endif*/
 
     }
-
-
 }
