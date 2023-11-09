@@ -187,7 +187,19 @@ namespace PubScale.SdkOne.NativeAds
                 PubEditorUX.DisplayHeading("AD BEHAVIOUR");
 
                 PubEditorUX.DisplayFloat(Prop_RefreshDelay, new GUIContent("Refresh time after Impression: "));
+
+                float refreshValue = Prop_RefreshDelay.floatValue;
+
+                if (refreshValue < PubScaleConstants.MIN_REFRESH_DELAY && refreshValue >= 0)
+                {
+                    PubEditorUX.DisplayTip("A minimum delay of " + PubScaleConstants.MIN_REFRESH_DELAY + "s is recommended. The plugin will refresh ad after " + PubScaleConstants.MIN_REFRESH_DELAY + "s.");
+                    EditorGUILayout.Space();
+                    EditorGUILayout.Space();
+                }
+
                 PubEditorUX.DisplayTip("To Disable Refresh use -1");
+                EditorGUILayout.Space();
+
                 PubEditorUX.DisplayInt(Prop_Retries, new GUIContent("Retries on Ad Fail: "));
             }
 

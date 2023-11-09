@@ -606,7 +606,7 @@ PrefabInstance:
     - target: {fileID: 981775398565660106, guid: 9fc1e0dc942b1b34ba8ac69a449acd69,
         type: 3}
       propertyPath: RefreshDelay
-      value: 10
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 981775398565660107, guid: 9fc1e0dc942b1b34ba8ac69a449acd69,
         type: 3}

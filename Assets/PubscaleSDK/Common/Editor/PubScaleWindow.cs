@@ -188,15 +188,38 @@ namespace PubScale.SdkOne
 
                     if (selection == 0)
                     {
-                        EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH - 40;
+                        EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH;
 
                         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
                         {
-                            string pre = psSettings.AppId;
-                            psSettings.AppId = EditorGUILayout.TextField("PubScale APP ID:", psSettings.AppId);
+                            string preID = string.Empty;
+                            string appIDHolder = string.Empty;
 
-                            if (IsStringChanged(pre, psSettings.AppId))
+                            if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
+                            {
+                                appIDHolder = psSettings.GetIOSAppID();
+                                preID = appIDHolder;
+                                appIDHolder = DisplayAppIDField(appIDHolder, "PubScale iOS APP ID: ");
+                                psSettings.SetIOSAppID(appIDHolder);
+
+                            }
+                            else if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.Android)
+                            {
+                                appIDHolder = psSettings.GetAndroidAppID();
+                                preID = appIDHolder;
+                                appIDHolder = DisplayAppIDField(appIDHolder, "PubScale Android APP ID: ");
+                                psSettings.SetAndroidAppID(appIDHolder);
+                            }
+                            else
+                            {
+                                EditorGUILayout.LabelField("Current Build Target is Not Supported");
+                                EditorGUILayout.Space();
+                                EditorGUILayout.LabelField("Please switch to Android or IOS");
+                            }
+
+                            if (IsStringChanged(preID, appIDHolder))
                                 changesDetected = true;
+
                         }
 
                         EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH + 40;
@@ -221,18 +244,6 @@ namespace PubScale.SdkOne
                             if (preBooleanSettingVal != psSettings.UseTestMode)
                                 changesDetected = true;
 
-                            // if (psSettings.UseTestMode == false)
-                            // {
-                            //     GUILayout.FlexibleSpace();
-
-                            //     EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH + 30;
-
-                            //     preBooleanSettingVal = psSettings.ShowLogsForLiveAdUnits;
-                            //     psSettings.ShowLogsForLiveAdUnits = EditorGUILayout.Toggle("Enable Plugin Logs in Release:", psSettings.ShowLogsForLiveAdUnits);
-
-                            //     if (preBooleanSettingVal != psSettings.ShowLogsForLiveAdUnits)
-                            //         changesDetected = true;
-                            // }
 
                             EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH + 50;
 
@@ -244,20 +255,42 @@ namespace PubScale.SdkOne
                             EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH;
 
 
-#if UNITY_IOS
-                        string preFallbackIOS = psSettings.Fallback_NativeAdID_IOS;
-                        psSettings.Fallback_NativeAdID_IOS = EditorGUILayout.TextField("Fallback Native ID IOS: ", psSettings.Fallback_NativeAdID_IOS);
+                            if (EditorUserBuildSettings.activeBuildTarget == BuildTarget.iOS)
+                            {
+                                string preFallbackIOS = psSettings.Fallback_NativeAdID_IOS;
+                                psSettings.Fallback_NativeAdID_IOS = EditorGUILayout.TextField("Fallback Native ID IOS: ", psSettings.Fallback_NativeAdID_IOS);
 
-                        if (IsStringChanged(preFallbackIOS, psSettings.Fallback_NativeAdID_IOS))
-                            changesDetected = true;
-#else
 
-                            string preFallbackAnd = psSettings.Fallback_NativeAdID_Android;
-                            psSettings.Fallback_NativeAdID_Android = EditorGUILayout.TextField("Fallback Native ID Android: ", psSettings.Fallback_NativeAdID_Android);
+                                if (!string.IsNullOrEmpty(psSettings.Fallback_NativeAdID_IOS))
+                                {
+                                    string preTrim = psSettings.Fallback_NativeAdID_IOS;
+                                    psSettings.Fallback_NativeAdID_IOS = psSettings.Fallback_NativeAdID_IOS.Trim();
+                                    string postTrim = psSettings.Fallback_NativeAdID_IOS;
 
-                            if (IsStringChanged(preFallbackAnd, psSettings.Fallback_NativeAdID_Android))
-                                changesDetected = true;
-#endif
+                                    ShowTrimFeedback(nameof(psSettings.Fallback_NativeAdID_IOS), preTrim, postTrim);
+                                }
+
+                                if (IsStringChanged(preFallbackIOS, psSettings.Fallback_NativeAdID_IOS))
+                                    changesDetected = true;
+                            }
+                            else
+                            {
+
+                                string preFallbackAnd = psSettings.Fallback_NativeAdID_Android;
+                                psSettings.Fallback_NativeAdID_Android = EditorGUILayout.TextField("Fallback Native ID Android: ", psSettings.Fallback_NativeAdID_Android);
+
+                                if (!string.IsNullOrEmpty(psSettings.Fallback_NativeAdID_Android))
+                                {
+                                    string preTrim = psSettings.Fallback_NativeAdID_Android;
+                                    psSettings.Fallback_NativeAdID_Android = psSettings.Fallback_NativeAdID_Android.Trim();
+                                    string postTrim = psSettings.Fallback_NativeAdID_Android;
+
+                                    ShowTrimFeedback(nameof(psSettings.Fallback_NativeAdID_Android), preTrim, postTrim);
+                                }
+
+                                if (IsStringChanged(preFallbackAnd, psSettings.Fallback_NativeAdID_Android))
+                                    changesDetected = true;
+                            }
 
                             EditorGUIUtility.labelWidth = PubEditorUX.DEF_LABEL_WIDTH;
 
@@ -321,13 +354,19 @@ namespace PubScale.SdkOne
 
 
 
-
         bool IsStringChanged(string s1, string s2)
         {
             if (string.CompareOrdinal(s1, s2) != 0)
                 return true;
             else
                 return false;
+        }
+
+        bool showTrimOutput = false;
+        void ShowTrimFeedback(string name, string preTrim, string postTrim)
+        {
+            if (showTrimOutput && IsStringChanged(preTrim, postTrim))
+                Debug.Log(name + " Str trimmed from -" + preTrim + "- to -" + postTrim + "-");
         }
 
 
@@ -341,6 +380,22 @@ namespace PubScale.SdkOne
             }
         }
 
+
+        string DisplayAppIDField(string appID, string textFieldDisplay)
+        {
+            appID = EditorGUILayout.TextField(textFieldDisplay, appID);
+
+            if (!string.IsNullOrEmpty(appID))
+            {
+                string preTrim = appID;
+                appID = appID.Trim();
+                string postTrim = appID;
+
+                ShowTrimFeedback(nameof(appID), preTrim, postTrim);
+            }
+
+            return appID;
+        }
 
 
     }

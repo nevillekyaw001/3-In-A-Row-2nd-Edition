@@ -99,14 +99,16 @@ public class PubScaleBuildProcessor : IPreprocessBuildWithReport, IPostprocessBu
         }
         else
         {
-            if (psSettings.AppId == string.Empty || psSettings.AppId == "")
+
+#if UNITY_ANDROID
+
+            if (string.IsNullOrEmpty(psSettings.GetAndroidAppID()))
             {
-                Debug.LogWarning($"PubScale App ID is Empty. Please assign your SDK App ID in the PubScale Window.");
+                Debug.LogWarning($"PubScale Android App ID is Empty. Please assign your SDK App ID in the PubScale Window.");
                 pubScaleErrors++;
             }
 
-#if UNITY_ANDROID
-            if (psSettings.Fallback_NativeAdID_Android == string.Empty || psSettings.Fallback_NativeAdID_Android == "")
+            if (string.IsNullOrEmpty(psSettings.Fallback_NativeAdID_Android))
             {
                 Debug.LogWarning($"PubScale Fallback Native Ad ID for Android is Empty. Please provide an Ad Unit ID in the PubScale Window.");
                 pubScaleErrors++;
@@ -114,7 +116,14 @@ public class PubScaleBuildProcessor : IPreprocessBuildWithReport, IPostprocessBu
 #endif
 
 #if UNITY_IOS
-           if (psSettings.Fallback_NativeAdID_IOS == string.Empty || psSettings.Fallback_NativeAdID_IOS == "")
+
+            if (string.IsNullOrEmpty(psSettings.GetIOSAppID()))
+            {
+                Debug.LogWarning($"PubScale App ID is Empty. Please assign your SDK App ID in the PubScale Window.");
+                pubScaleErrors++;
+            }
+
+           if (string.IsNullOrEmpty(psSettings.Fallback_NativeAdID_IOS))
             {
                 Debug.LogWarning($"PubScale Fallback Native Ad ID for IOS is Empty. Please provide an Ad Unit ID in the PubScale Window.");
                 pubScaleErrors++;

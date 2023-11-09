@@ -12,8 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 1486247019, guid: e26a3a648f81fba4a9dab225d19f9896, type: 3}
   m_Name: PubScaleSettings
   m_EditorClassIdentifier: 
-  UseTestMode: 1
-  Fallback_NativeAdID_Android: ca-app-pub-3940256099942544/2247696110
+  UseTestMode: 0
+  Fallback_NativeAdID_Android: /22731072168,22990482577/com.GOATStudios.ThanlyinHtoutPoh.Native0.1694697215
   Fallback_NativeAdID_IOS: 
+  AppID_Android: 47623605
+  AppID_IOS: 
   AppID: 47623605
   IsFirstTimeUsingTheAsset: 0
